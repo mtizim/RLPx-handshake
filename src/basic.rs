@@ -2,7 +2,7 @@
 
 use aes::{
     cipher::{KeyIvInit, StreamCipher},
-    Aes128, Aes256, Aes256Enc,
+    Aes128, Aes256Enc,
 };
 use cipher::{block_padding::NoPadding, BlockEncrypt, KeyInit};
 use ethereum_types::{H128, H256};

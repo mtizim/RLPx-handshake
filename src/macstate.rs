@@ -1,4 +1,3 @@
-use aes::cipher::{generic_array::GenericArray, BlockEncrypt};
 use ethereum_types::{H128, H256};
 use sha2::Digest;
 use sha3::Keccak256;
@@ -36,7 +35,7 @@ impl MacState {
         self.digest()
     }
 
-    pub fn compute_frame_mac(&mut self, frame_ciphertext: &[u8]) -> H128 {
+    pub fn compute_body_mac(&mut self, frame_ciphertext: &[u8]) -> H128 {
         self.update(frame_ciphertext);
         let dig_1 = self.digest();
         let frame_mac_seed = &xor(&aes256_16(&self.secret, self.digest()), dig_1.as_bytes());

@@ -27,12 +27,6 @@ pub fn ecies_encrypt_message(
     let mut message_out: Vec<u8> = Vec::with_capacity(2 + auth_size as usize);
     let d = mac(&km, &iv, &c, auth_size);
 
-    let privkey = "3369544a527fda55948730b467d47ecfd98bbe99ce1bb795d8bc0dd5c0ca85b0"
-        .parse::<SecretKey>()
-        .unwrap();
-
-    let recipient_pubkey = secp256k1::PublicKey::from_secret_key(SECP256K1, &privkey);
-
     message_out.extend(&auth_size.to_be_bytes());
     message_out.extend(rbig);
     message_out.extend(iv.as_bytes());
