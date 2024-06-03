@@ -56,7 +56,7 @@ If you need to doublecheck, `./run` also prints out a relevant part of the log f
 
 - **Quality**: Clippy doesn't complain, lgtm
 - **Performance**: No blocks, no waits other than IO.
-- **Security**: There is a size limit on incoming messages. Network reads that do not consume data immediately have a timeout (the ones that consume data immediately fail if they have to wait). Otherwise, no input is trusted to mean anything, and this is Rust, so we don't really have buffer overflows
+- **Security**: There is a size limit on incoming messages. Network reads that do not consume data immediately have a timeout (the ones that consume data immediately fail if they have to wait). Otherwise, no input is trusted to mean anything, and this is Rust, so we don't really have buffer overflows. DDoS attacks on TCP are still possible, but this is outside of the scope of the assignment.
 - **Minimalism**: `tokio` for networking, `thiserror` for nice error derivation, `ethereum_types` because this is ethereum, a number of cryptography crates for cryptographic functions
 - **Versatility**: ✅ bi-directional, ✅ unfixed values
 - **Uniqueness**: Ethereum
