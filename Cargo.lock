@@ -68,7 +68,6 @@ dependencies = [
  "concat-kdf",
  "ctr",
  "ethereum-types",
- "hex",
  "hmac",
  "libsecp256k1-core",
  "rand",

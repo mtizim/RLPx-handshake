@@ -1,0 +1,8 @@
+#!/bin/bash
+./reth node --dev -vvvvv &> reth.log &
+echo "Starting reth"
+sleep 5
+cargo run -r
+echo "Displaying relevant reth log"
+cat reth.log | grep "sending eth" -C 3 --text
+

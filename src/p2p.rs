@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::macstate::MacState;
 use aes::Aes256;
 use alloy_rlp::Encodable;
@@ -16,6 +18,7 @@ use secp256k1::SECP256K1;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
+use tokio::time::sleep;
 
 use crate::basic::xor;
 use crate::Error;
@@ -36,6 +39,7 @@ pub const MAX_MESSAGE_SIZE: u64 = 16 * 1048576;
 pub const ZERO_HEADER: &[u8; 3] = &[194, 128, 128]; //
 pub const SECP256K1_TAG_PUBKEY_UNCOMPRESSED: u8 = 4;
 
+#[derive(Clone)]
 pub struct PersistentKeys {
     pub secret: SecretKey,
     pub public: PublicKey,
@@ -180,7 +184,7 @@ pub struct Capability {
     pub name: String,
     pub version: usize,
 }
-#[derive(RlpDecodable)]
+#[derive(RlpDecodable, RlpEncodable)]
 pub struct AuthAckBody {
     pub recipient_ephemeral_pubk: [u8; 64],
     pub recipient_nonce: [u8; 32],
@@ -189,8 +193,8 @@ pub struct AuthAckBody {
     pub ack_vsn: u8,
 }
 
-#[derive(RlpEncodable)]
-pub struct AckBody {
+#[derive(RlpEncodable, RlpDecodable)]
+pub struct AuthBody {
     pub sig: [u8; 65],
     pub initiator_pubk: [u8; 64],
     pub initiator_nonce: [u8; 32],
@@ -236,15 +240,27 @@ pub async fn receive_hello(p2p_state: &mut P2PState, stream: &mut TcpStream) -> 
     let mut frame = Vec::with_capacity(4096);
     let mut handle = stream.take(MAX_MESSAGE_SIZE);
     let mut buf = [0; 1024];
+    let mut time = 0;
     loop {
         let bytes_read = handle.read(&mut buf).await?;
+
+        if frame.is_empty() && bytes_read == 0 {
+            sleep(Duration::from_millis(20)).await;
+            time += 20;
+            // Ballpark estimate, I know this it not precise
+            // But it also doesn't need to be
+            if time > 1000 {
+                return Err(Error::Timeout);
+            }
+            continue;
+        }
         frame.extend_from_slice(&buf[..bytes_read]);
         if bytes_read == 0 || bytes_read < 1024 {
             break;
         }
     }
-
     if frame.len() < 32 + 16 {
+        dbg!(frame.len());
         // I'm only handling a happy path handshake here, invalid messages are out of scope
         return Err(Error::OutOfScope);
     }
@@ -253,6 +269,7 @@ pub async fn receive_hello(p2p_state: &mut P2PState, stream: &mut TcpStream) -> 
     let msg_type = data[0];
     // rlp-encoded 0 coresponds to a hello message
     if msg_type != alloy_rlp::encode(0u8).as_slice()[0] {
+        dbg!("or here");
         // I'm only handling a handshake here, other messages are out of scope (including disconnect)
         return Err(Error::OutOfScope);
     }

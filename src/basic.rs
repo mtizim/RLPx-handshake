@@ -1,12 +1,9 @@
 // A bucket of things from https://github.com/ethereum/devp2p/blob/master/rlpx.md#Notation
 
-use aes::{
-    cipher::{KeyIvInit, StreamCipher},
-    Aes128, Aes256Enc,
-};
-use cipher::{block_padding::NoPadding, BlockEncrypt, KeyInit};
+use aes::{Aes128, Aes256Enc};
+use cipher::{block_padding::NoPadding, BlockEncrypt, KeyInit, KeyIvInit, StreamCipher};
 use ethereum_types::{H128, H256};
-use sha2::Digest;
+use sha3::Digest;
 
 pub fn xor(x: &[u8], y: &[u8]) -> Vec<u8> {
     let mut x = x.to_vec();
@@ -21,7 +18,7 @@ pub fn xor_in_place(x: &mut [u8], y: &[u8]) {
 }
 
 pub fn keccak256(data: Vec<u8>) -> [u8; 32] {
-    let mut hasher = sha3::Keccak256::new();
+    let mut hasher = <sha3::Keccak256 as Digest>::new();
     hasher.update(data);
     let hash = hasher.finalize();
     hash.into()

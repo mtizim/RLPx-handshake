@@ -1,4 +1,5 @@
 use initiator::initiate;
+use p2p::PersistentKeys;
 use secp256k1::{SecretKey, SECP256K1};
 use thiserror::Error;
 
@@ -7,7 +8,7 @@ mod ecies;
 mod initiator;
 mod macstate;
 mod p2p;
-mod receiver;
+mod recipient;
 
 #[tokio::main]
 async fn main() {
@@ -17,8 +18,9 @@ async fn main() {
     let reth_pubkey = secp256k1::PublicKey::from_secret_key(SECP256K1, &reth_privkey);
 
     println!("##################");
+    println!("Initiating handshake with peer");
+    println!("(we're the initiator, reth (known good implementation) is the peer)");
     println!("##################");
-    println!("Initiating handshake with peer: \n");
 
     initiate("0.0.0.0:30303", reth_pubkey)
         .await
@@ -27,12 +29,28 @@ async fn main() {
     println!("\nPer spec, handshake ends when both parties have received and verified their hello messages");
     println!("If our hello was bad, the tcp connection should have been closed, and we'd have seen an error");
     println!("So we know our hello was good, we confirmed their hello was good");
-    println!("So the handshake has ended successfully");
-    println!("(if you want to doublecheck, look for 'sending eth status to peer' in reth logs, this confirms that the reth node now regards us as a peer");
+    println!("So the handshake has finished successfully");
+    println!("(if you want to doublecheck, look for 'sending eth status to peer' in reth.log, this confirms that the reth node now regards us as a peer");
 
     println!("\n\n##################");
+    println!("Receiving handshake from peer");
+    println!("(now that we know that we can initiate a handshake correctly, it's this code handshaking itself)");
     println!("##################");
-    println!("Receiving handshake from peer: \n");
+
+    let receiver_identity = PersistentKeys::new();
+
+    recipient::receive("0.0.0.0:33339", &receiver_identity)
+        .await
+        .expect("Handshake receival should have gone correctly");
+
+    initiate("0.0.0.0:33339", receiver_identity.public)
+        .await
+        .expect("Handshake should have gone correctly");
+
+    println!("\n");
+    println!(
+        "Both sides verified their hello messages - \n  the handshake has finished successfully!\n\n"
+    );
 }
 
 #[derive(Error, Debug)]
@@ -57,6 +75,10 @@ pub enum Error {
     IOError(#[from] std::io::Error),
     #[error("Out of assignment scope")]
     OutOfScope,
+    #[error("Invalid signature")]
+    InvalidSignature,
+    #[error("Message timeout")]
+    Timeout,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
